@@ -150,7 +150,7 @@ def handle_oauth_callback():
             st.experimental_set_query_params()
 
 # --- Streamlit UI ---
-st.title("Schedule Planner 🗓️")
+st.title("Schedule Planner3 🗓️")
 
 # Handle OAuth callback first
 handle_oauth_callback()
