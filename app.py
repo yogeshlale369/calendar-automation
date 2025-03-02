@@ -133,8 +133,10 @@ def get_google_services():
 
 def handle_oauth_callback():
     """Handle OAuth redirect in cloud environment"""
-    if 'code' in st.experimental_get_query_params():
-        code = st.experimental_get_query_params()['code'][0]
+    query_params = st.query_params  # Updated method
+    
+    if 'code' in query_params:
+        code = query_params['code']
         if 'auth_flow' in st.session_state:
             flow = st.session_state.auth_flow
             flow.fetch_token(code=code)
@@ -147,8 +149,7 @@ def handle_oauth_callback():
                 'scopes': flow.credentials.scopes
             }
             # Clear query parameters
-            st.experimental_set_query_params()
-
+            st.query_params.clear()  # Updated method
 # --- Streamlit UI ---
 st.title("Schedule Planner 🗓️")
 
