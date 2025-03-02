@@ -5,17 +5,21 @@ import base64
 import requests
 from datetime import datetime
 from pytz import timezone
-
-# ----- Configuration -----
 from dotenv import load_dotenv
 import os
 
 # Load environment variables
 load_dotenv()
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", st.secrets.get("GEMINI_API_KEY"))
-OPENAI_KEY = os.getenv("OPENAI_KEY", st.secrets.get("OPENAI_KEY"))
-LOCAL_TIMEZONE = timezone('Asia/Kolkata')  # IST
 
+# ----- Configuration -----
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY")
+OPENAI_KEY = os.getenv("OPENAI_KEY") or st.secrets.get("OPENAI_KEY")
+
+if not GEMINI_API_KEY:
+    st.error("GEMINI_API_KEY not found. Please set it in .env or secrets.toml.")
+    st.stop()
+
+LOCAL_TIMEZONE = timezone('Asia/Kolkata')  # IST
 # API Endpoints
 GEMINI_TEXT_ENDPOINT = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
 GEMINI_VISION_ENDPOINT = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
@@ -87,7 +91,7 @@ elif input_method == "Voice":
         if audio:
             with st.spinner("Processing voice..."):
                 # Convert audio to text using Whisper API
-                headers = {"Authorization": f"Bearer {st.secrets['OPENAI_KEY']}"}
+                headers = {"Authorization": f"Bearer {OPENAI_KEY}"}
                 response = requests.post("https://api.openai.com/v1/audio/transcriptions", 
                                       headers=headers,
                                       files={"file": audio["bytes"]},
