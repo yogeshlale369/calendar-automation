@@ -35,6 +35,50 @@ SCOPES = [
     "https://www.googleapis.com/auth/tasks"
 ]
 
+# --- Helper Functions ---
+def parse_input(text=None, image_bytes=None):
+    """Parse natural language text or image with explicit time context"""
+    current_time = datetime.now(LOCAL_TIMEZONE).strftime("%Y-%m-%d %H:%M %Z")
+    
+    prompt = (
+        f"Current datetime: {current_time} ({LOCAL_TIMEZONE.zone})\n"
+        "Analyze this input and return JSON with separate 'events' and 'tasks' lists.\n"
+        "For events include: summary, start_time (ISO8601 with timezone), end_time (ISO8601 with timezone), description.\n"
+        "For tasks include: title, due (ISO8601 with timezone), notes.\n"
+        "Rules:\n"
+        "1. Convert relative times to absolute datetimes\n"
+        "2. Assume 1-hour duration for events without end_time\n"
+        "3. Use timezone: Asia/Kolkata (IST)\n"
+        "4. Format response as: ```json{...}```\n"
+    )
+
+    parts = [{"text": prompt}]
+    
+    if text:
+        parts.append({"text": f"Input text: {text}"})
+    if image_bytes:
+        parts.append({
+            "inline_data": {
+                "mime_type": "image/jpeg",
+                "data": base64.b64encode(image_bytes).decode()
+            }
+        })
+
+    payload = {"contents": [{"parts": parts}]}
+
+    try:
+        response = requests.post(GEMINI_API_ENDPOINT, json=payload, timeout=30)
+        response.raise_for_status()
+        result = response.json()
+        
+        output_text = result["candidates"][0]["content"]["parts"][0]["text"]
+        json_match = re.search(r'```json\s*(.*?)\s*```', output_text, re.DOTALL)
+        return json.loads(json_match.group(1).strip()) if json_match else {"events": [], "tasks": []}
+    
+    except Exception as e:
+        st.error(f"Error processing Gemini response: {str(e)}")
+        return {"events": [], "tasks": []}
+
 def get_google_services():
     """Secure OAuth flow for both local and cloud environments"""
     creds = None
@@ -105,10 +149,13 @@ def handle_oauth_callback():
             # Clear query parameters
             st.experimental_set_query_params()
 
+# --- Streamlit UI ---
+st.title("Schedule Planner2 🗓️")
 
-# Streamlit UI
-st.title("Schedule Planner 🗓️")
+# Handle OAuth callback first
+handle_oauth_callback()
 
+# Input fields
 input_text = st.text_area("Describe your schedule/tasks:", height=150)
 uploaded_file = st.file_uploader("Or upload an image:", type=["jpg", "png", "jpeg"])
 
@@ -127,11 +174,15 @@ if st.button("Process Schedule"):
     
     try:
         services = get_google_services()
+        if not services:
+            st.warning("Please authenticate first using the link above")
+            st.stop()
+        
         st.success("Connected to Google services ✅")
     except Exception as e:
         st.error(f"Google connection failed: {str(e)}")
         st.stop()
-    
+        
     results = []
     
     if schedule.get("events"):
