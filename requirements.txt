@@ -1,5 +1,8 @@
+# requirements.txt
 streamlit
+google-auth-oauthlib
+google-api-python-client
 requests
-pytz
 python-dotenv
-streamlit-mic-recorder
+pytz
+pillow  # For image processing
