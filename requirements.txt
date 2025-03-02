@@ -1,0 +1,5 @@
+streamlit
+requests
+pytz
+python-dotenv
+streamlit-mic-recorder
