@@ -133,8 +133,8 @@ def get_google_services():
 
 def handle_oauth_callback():
     """Handle OAuth redirect in cloud environment"""
-    if 'code' in st.query_params():
-        code = st.query_params()['code'][0]
+    if 'code' in st.experimental_get_query_params():
+        code = st.experimental_get_query_params()['code'][0]
         if 'auth_flow' in st.session_state:
             flow = st.session_state.auth_flow
             flow.fetch_token(code=code)
@@ -150,7 +150,7 @@ def handle_oauth_callback():
             st.experimental_set_query_params()
 
 # --- Streamlit UI ---
-st.title("Schedule Planner3 🗓️")
+st.title("Schedule Planner 🗓️")
 
 # Handle OAuth callback first
 handle_oauth_callback()
@@ -182,7 +182,7 @@ if st.button("Process Schedule"):
     except Exception as e:
         st.error(f"Google connection failed: {str(e)}")
         st.stop()
-
+        
     results = []
     
     if schedule.get("events"):
@@ -190,7 +190,10 @@ if st.button("Process Schedule"):
         for event in schedule["events"]:
             try:
                 start = datetime.fromisoformat(event["start_time"])
-                end = datetime.fromisoformat(event.get("end_time") or (start + timedelta(hours=1)))
+                if event.get("end_time"):
+                    end = datetime.fromisoformat(event["end_time"]).astimezone(LOCAL_TIMEZONE)
+                else:
+                     end = (start + timedelta(hours=1)).astimezone(LOCAL_TIMEZONE)
                 
                 created_event = services["calendar"].events().insert(
                     calendarId="primary",
@@ -224,8 +227,12 @@ if st.button("Process Schedule"):
                 ).execute()
                 
                 results.append(f"✅ Task created: {created_task['title']}")
-                st.success(f"**{created_task['title']}**\n"
-                          f"Due: {datetime.fromisoformat(task['due']).strftime('%d %b %Y %H:%M') if task.get('due') else 'No due date'}")
+                if task.get('due'):
+                    due_date = datetime.fromisoformat(task['due']).astimezone(LOCAL_TIMEZONE)
+                    due_str = due_date.strftime('%d %b %Y %H:%M')
+                else:
+                  due_str = 'No due date'
+                st.success(f"**{created_task['title']}**\nDue: {due_str}")
             except Exception as e:
                 results.append(f"❌ Task failed: {str(e)}")
                 st.error(f"Failed to create task: {str(e)}")
