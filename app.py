@@ -16,11 +16,28 @@ from pytz import timezone
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") or st.secrets.get("GEMINI_API_KEY")
 OPENAI_KEY = os.getenv("OPENAI_KEY") or st.secrets.get("OPENAI_KEY")
 
-GEMINI_API_ENDPOINT = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={os.getenv('GEMINI_API_KEY')}"
-GOOGLE_CREDENTIALS_FILE = "credentials3.json"
-SCOPES = ["https://www.googleapis.com/auth/calendar", "https://www.googleapis.com/auth/tasks"]
-TOKEN_FILE = "token.json"
+GEMINI_API_ENDPOINT = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_API_KEY}"
 LOCAL_TIMEZONE = timezone('Asia/Kolkata')
+
+# Get Google credentials from environment variables
+CLIENT_CONFIG = {
+    "web": {
+        "client_id": os.getenv("GOOGLE_CLIENT_ID"),
+        "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
+        "project_id": os.getenv("GOOGLE_PROJECT_ID"),
+        "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+        "token_uri": "https://oauth2.googleapis.com/token",
+        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+        "redirect_uris": [
+            "http://localhost:8080/",
+            st.secrets.get("REDIRECT_URI", "https://your-streamlit-app-url/")
+        ]
+    }
+}
+
+SCOPES = ["https://www.googleapis.com/auth/calendar", 
+          "https://www.googleapis.com/auth/tasks"]
+TOKEN_FILE = "token.json"
 
 def parse_input(text=None, image_bytes=None):
     current_time = datetime.now(LOCAL_TIMEZONE).strftime("%Y-%m-%d %H:%M %Z")
@@ -73,7 +90,10 @@ def get_google_services():
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file(GOOGLE_CREDENTIALS_FILE, SCOPES)
+            flow = InstalledAppFlow.from_client_config(
+                CLIENT_CONFIG,
+                SCOPES
+            )
             creds = flow.run_local_server(port=0)
         
         with open(TOKEN_FILE, "w") as token:
