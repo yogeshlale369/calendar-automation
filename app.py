@@ -133,8 +133,8 @@ def get_google_services():
 
 def handle_oauth_callback():
     """Handle OAuth redirect in cloud environment"""
-    if 'code' in st.experimental_get_query_params():
-        code = st.experimental_get_query_params()['code'][0]
+    if 'code' in st.query_params():
+        code = st.query_params()['code'][0]
         if 'auth_flow' in st.session_state:
             flow = st.session_state.auth_flow
             flow.fetch_token(code=code)
@@ -150,7 +150,7 @@ def handle_oauth_callback():
             st.experimental_set_query_params()
 
 # --- Streamlit UI ---
-st.title("Schedule Planner2 🗓️")
+st.title("Schedule Planner 🗓️")
 
 # Handle OAuth callback first
 handle_oauth_callback()
@@ -182,7 +182,7 @@ if st.button("Process Schedule"):
     except Exception as e:
         st.error(f"Google connection failed: {str(e)}")
         st.stop()
-        
+
     results = []
     
     if schedule.get("events"):
